@@ -8,25 +8,25 @@ android {
     ndkVersion = '26.2.11394342'
     compileSdk = 32
     buildToolsVersion = '36.0.0'
-    namespace = 'com.zcshou.gogogo'
+    namespace = 'com.zcshou.chengziapk'
 
     signingConfigs {
         debug {
-            storeFile file('..\\keystore\\GoGoGo.jks')
-            storePassword 'GoGoGo'
-            keyAlias 'GoGoKey'
-            keyPassword 'GoGoGo'
+            storeFile file('..\\keystore\\chengziapk.jks')
+            storePassword '123456'
+            keyAlias 'mykey'
+            keyPassword '123456'
         }
         release {
-            storeFile file('..\\keystore\\GoGoGo.jks')
-            storePassword 'GoGoGo'
-            keyAlias 'GoGoKey'
-            keyPassword 'GoGoGo'
+            storeFile file('..\\keystore\\chengziapk.jks')
+            storePassword '123456'
+            keyAlias 'mykey'
+            keyPassword '123456'
         }
     }
 
     defaultConfig {
-        applicationId "com.zcshou.gogogo"
+        applicationId "com.zcshou.chengziapk"
         minSdkVersion 27
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 32

@@ -28,8 +28,8 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
 import com.elvishew.xlog.XLog;
-import com.zcshou.gogogo.MainActivity;
-import com.zcshou.gogogo.R;
+import com.zcshou.chengziapk.MainActivity;
+import com.zcshou.chengziapk.R;
 import com.zcshou.joystick.JoyStick;
 
 public class ServiceGo extends Service {
@@ -55,6 +55,8 @@ public class ServiceGo extends Service {
     private static final String SERVICE_GO_NOTE_ACTION_JOYSTICK_HIDE = "HideJoyStick";
     private static final String SERVICE_GO_NOTE_CHANNEL_ID = "SERVICE_GO_NOTE";
     private static final String SERVICE_GO_NOTE_CHANNEL_NAME = "SERVICE_GO_NOTE";
+    // 融合定位提供器（GMS/Xiaomi 部分机型存在），一并覆盖以减少定位闪回
+    private static final String FUSED_PROVIDER = "fused";
     private NoteActionReceiver mActReceiver;
     // 摇杆相关
     private JoyStick mJoyStick;
@@ -77,6 +79,9 @@ public class ServiceGo extends Service {
 
         removeTestProviderGPS();
         addTestProviderGPS();
+
+        removeTestProviderFused();
+        addTestProviderFused();
 
         initGoLocation();
 
@@ -189,6 +194,7 @@ public class ServiceGo extends Service {
                     if (!isStop) {
                         setLocationNetwork();
                         setLocationGPS();
+                        setLocationFused();
 
                         sendEmptyMessage(HANDLER_MSG_ID);
                     }
@@ -237,7 +243,10 @@ public class ServiceGo extends Service {
         try {
             // 尽可能模拟真实的 GPS 数据
             Location loc = new Location(LocationManager.GPS_PROVIDER);
-            loc.setAccuracy(Criteria.ACCURACY_FINE);    // 设定此位置的估计水平精度，以米为单位。
+            loc.setAccuracy(8.0f);                        // 真实 GPS 水平精度通常在几米到十几米
+            loc.setVerticalAccuracyMeters(5.0f);
+            loc.setSpeedAccuracyMetersPerSecond(1.0f);
+            loc.setBearingAccuracyDegrees(5.0f);
             loc.setAltitude(mCurAlt);                     // 设置高度，在 WGS 84 参考坐标系中的米
             loc.setBearing(mCurBea);                       // 方向（度）
             loc.setLatitude(mCurLat);                   // 纬度（度）
@@ -292,7 +301,10 @@ public class ServiceGo extends Service {
         try {
             // 尽可能模拟真实的 NETWORK 数据
             Location loc = new Location(LocationManager.NETWORK_PROVIDER);
-            loc.setAccuracy(Criteria.ACCURACY_COARSE);  // 设定此位置的估计水平精度，以米为单位。
+            loc.setAccuracy(30.0f);                       // 真实网络定位精度通常在几十米
+            loc.setVerticalAccuracyMeters(20.0f);
+            loc.setSpeedAccuracyMetersPerSecond(1.0f);
+            loc.setBearingAccuracyDegrees(10.0f);
             loc.setAltitude(mCurAlt);                     // 设置高度，在 WGS 84 参考坐标系中的米
             loc.setBearing(mCurBea);                       // 方向（度）
             loc.setLatitude(mCurLat);                   // 纬度（度）
@@ -304,6 +316,47 @@ public class ServiceGo extends Service {
             mLocManager.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, loc);
         } catch (Exception e) {
             XLog.e("SERVICEGO: ERROR - setLocationNetwork");
+        }
+    }
+
+    private void removeTestProviderFused() {
+        try {
+            if (mLocManager.isProviderEnabled(FUSED_PROVIDER)) {
+                mLocManager.setTestProviderEnabled(FUSED_PROVIDER, false);
+                mLocManager.removeTestProvider(FUSED_PROVIDER);
+            }
+        } catch (Exception e) {
+            // 部分机型没有 fused 提供器，忽略即可
+            XLog.i("SERVICEGO: no fused provider to remove");
+        }
+    }
+
+    private void addTestProviderFused() {
+        try {
+            mLocManager.addTestProvider(FUSED_PROVIDER, true, false, true, true,
+                    true, true, true, Criteria.POWER_LOW, Criteria.ACCURACY_COARSE);
+            mLocManager.setTestProviderEnabled(FUSED_PROVIDER, true);
+        } catch (Exception e) {
+            // 无 fused 提供器时忽略，不影响 GPS/NETWORK 伪造
+            XLog.i("SERVICEGO: no fused provider to add");
+        }
+    }
+
+    private void setLocationFused() {
+        try {
+            Location loc = new Location(FUSED_PROVIDER);
+            loc.setAccuracy(30.0f);
+            loc.setAltitude(mCurAlt);
+            loc.setBearing(mCurBea);
+            loc.setLatitude(mCurLat);
+            loc.setLongitude(mCurLng);
+            loc.setTime(System.currentTimeMillis());
+            loc.setSpeed((float) mSpeed);
+            loc.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+
+            mLocManager.setTestProviderLocation(FUSED_PROVIDER, loc);
+        } catch (Exception e) {
+            // 静默处理：无 fused 提供器时每 100ms 抛一次异常，避免日志刷屏
         }
     }
 

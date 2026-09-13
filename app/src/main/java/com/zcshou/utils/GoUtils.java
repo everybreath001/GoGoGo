@@ -3,6 +3,7 @@ package com.zcshou.utils;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -21,6 +22,7 @@ import android.view.Gravity;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.preference.PreferenceManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -236,8 +238,13 @@ public class GoUtils {
                 .show();
     }
 
-    // 提醒开启位置模拟的弹框
+    // 提醒开启位置模拟的弹框（警告只提示一次，弹出后记录状态，不再重复提示）
     public static  void showDisableWifiDialog(Context context) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        if (preferences.getBoolean("wifi_warning_shown", false)) {
+            return;
+        }
+
         new AlertDialog.Builder(context)
                 .setTitle("警告")
                 .setMessage("开启 WIFI 后（即使没有连接热点）将导致定位闪回真实位置。建议关闭 WIFI，使用移动流量进行游戏！")
@@ -252,6 +259,8 @@ public class GoUtils {
                 .setNegativeButton("忽略",(dialog, which) -> {
                 })
                 .show();
+
+        preferences.edit().putBoolean("wifi_warning_shown", true).apply();
     }
 
     public static  void DisplayToast(Context context, String str) {

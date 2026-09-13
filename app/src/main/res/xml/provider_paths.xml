@@ -6,12 +6,10 @@
 
     <!-- files-path 表示内存卡路径，对应代码为 context.getFileDir() 接口 -->
     <files-path name="files" path="." />
-    <files-path name="Update" path="Update" />
 
     <!-- external-files-path 表示SD卡路径，对应代码为 context.getExternalFilesDir() 接口 -->
     <external-files-path name="external_files" path="." />
     <external-files-path name="Logs" path="Logs/" />
-    <external-files-path name="Updates" path="Updates/" />
 
     <external-path name="external" path="." />
 
