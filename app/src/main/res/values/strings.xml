@@ -89,6 +89,22 @@
     <string name="history_error_location">定位失败，请手动选取定位点</string>
     <string name="history_error_search">未搜索到指定内容</string>
 
+    <!-- 常用点位 -->
+    <string name="favorite_group_default">默认</string>
+    <string name="favorite_empty">暂无常用点位</string>
+    <string name="favorite_save_current">保存当前位置</string>
+    <string name="favorite_save_ok">点位已保存</string>
+    <string name="favorite_save_error">请先在地图上选择位置</string>
+    <string name="favorite_delete_ok">已删除点位</string>
+    <string name="favorite_rename_title">点位名称</string>
+    <string name="favorite_group_title">分组名称</string>
+    <string name="favorite_group_exists">分组已存在</string>
+    <string name="favorite_delete_group_tips">确定要删除分组「%1$s」及其下所有点位吗?</string>
+    <string name="favorite_move_group">移动到分组</string>
+    <string name="favorite_new_group">新建分组</string>
+    <string name="favorite_no_other_group">没有其他分组</string>
+    <string name="favorite_jump_ok">已切换到该点位</string>
+
     <!-- 通知栏 -->
     <string name="note_show">显示摇杆</string>
     <string name="note_hide">隐藏摇杆</string>
@@ -105,6 +121,7 @@
     <string name="nav_drawer_open">打开导航菜单</string>
     <string name="nav_drawer_close">关闭导航菜单</string>
     <string name="nav_menu_history">历史记录</string>
+    <string name="nav_menu_favorite">常用点位</string>
     <string name="nav_menu_settings">设置</string>
     <string name="nav_menu_dev">开发人员选项</string>
     <string name="nav_menu_more">更多</string>

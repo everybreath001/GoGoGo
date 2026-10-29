@@ -20,6 +20,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -28,12 +29,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.Button;import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.SimpleAdapter;
@@ -90,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.zcshou.service.ServiceGo;
+import com.zcshou.database.DataBaseFavoriteLocation;
 import com.zcshou.database.DataBaseHistoryLocation;
 import com.zcshou.database.DataBaseHistorySearch;
 import com.zcshou.utils.ShareUtils;
@@ -147,6 +150,9 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
     /*============================== 历史记录 相关 ==============================*/
     private SQLiteDatabase mLocationHistoryDB;
     private SQLiteDatabase mSearchHistoryDB;
+    /*============================== 常用点位 相关 ==============================*/
+    private SQLiteDatabase mFavoriteDB;
+    private String mFavoriteGroup = DataBaseFavoriteLocation.DEFAULT_GROUP;
     /*============================== SearchView 相关 ==============================*/
     private SearchView searchView;
     private ListView mSearchList;
@@ -200,6 +206,8 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
         initStoreHistory();
 
         initSearchView();
+
+        initFavorites();
     }
 
     @Override
@@ -216,6 +224,7 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
         mMapView.onResume();
         mSensorManager.registerListener(this, mSensorAccelerometer, SensorManager.SENSOR_DELAY_UI);
         mSensorManager.registerListener(this, mSensorMagnetic, SensorManager.SENSOR_DELAY_UI);
+        refreshFavoriteGroup();
         super.onResume();
     }
 
@@ -251,6 +260,7 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
         //close db
         mLocationHistoryDB.close();
         mSearchHistoryDB.close();
+        mFavoriteDB.close();
 
         super.onDestroy();
     }
@@ -403,6 +413,10 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
                 Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
 
                 startActivity(intent);
+            } else if (id == R.id.nav_favorite) {
+                Intent intent = new Intent(MainActivity.this, FavoriteActivity.class);
+
+                startActivity(intent);
             } else if (id == R.id.nav_settings) {
                 Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
@@ -497,6 +511,8 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
             recordCurrentLocation(mMarkLatLngMap.longitude, mMarkLatLngMap.latitude);
             GoUtils.DisplayToast(this, getResources().getString(R.string.app_location_save));
         });
+        ImageButton ibFavorite = poiView.findViewById(R.id.poi_favorite);
+        ibFavorite.setOnClickListener(v -> saveCurrentLocationToFavorite());
         ImageButton ibCopy = poiView.findViewById(R.id.poi_copy);
         ibCopy.setOnClickListener(v -> {
             //获取剪贴板管理器：
@@ -973,6 +989,71 @@ public class MainActivity extends BaseActivity implements SensorEventListener {
                 }
             }
         });
+    }
+
+    /*============================== 常用点位 相关 ==============================*/
+    private void initFavorites() {
+        try {
+            DataBaseFavoriteLocation dbFavorite = new DataBaseFavoriteLocation(getApplicationContext());
+            mFavoriteDB = dbFavorite.getWritableDatabase();
+        } catch (Exception e) {
+            XLog.e("ERROR: favorite sqlite init error");
+        }
+
+        refreshFavoriteGroup();
+    }
+
+    // 常用点位管理在 FavoriteActivity 中进行，主界面只跟随当前选中的分组
+    private void refreshFavoriteGroup() {
+        if (mFavoriteDB == null) {
+            return;
+        }
+
+        mFavoriteGroup = sharedPreferences.getString("favorite_current_group",
+                DataBaseFavoriteLocation.DEFAULT_GROUP);
+        if (!DataBaseFavoriteLocation.getGroups(mFavoriteDB).contains(mFavoriteGroup)) {
+            mFavoriteGroup = DataBaseFavoriteLocation.DEFAULT_GROUP;
+        }
+    }
+
+    private double getSettingAltitude() {
+        return Double.parseDouble(sharedPreferences.getString("setting_altitude", "55.0"));
+    }
+
+    private void saveCurrentLocationToFavorite() {
+        if (mMarkLatLngMap == null) {
+            GoUtils.DisplayToast(this, getResources().getString(R.string.favorite_save_error));
+            return;
+        }
+
+        refreshFavoriteGroup();
+
+        final double bdLng = mMarkLatLngMap.longitude;
+        final double bdLat = mMarkLatLngMap.latitude;
+        final String defaultName = TextUtils.isEmpty(mMarkName)
+                ? getResources().getString(R.string.history_location_default_name) : mMarkName;
+
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setText(defaultName);
+
+        new AlertDialog.Builder(this)
+                .setTitle(getResources().getString(R.string.favorite_rename_title))
+                .setView(input)
+                .setPositiveButton("保存", (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (TextUtils.isEmpty(name)) {
+                        name = defaultName;
+                    }
+                    double[] latLng = MapUtils.bd2wgs(bdLng, bdLat);
+                    DataBaseFavoriteLocation.saveFavorite(mFavoriteDB, mFavoriteGroup, name,
+                            latLng[0], latLng[1], bdLng, bdLat);
+                    int count = DataBaseFavoriteLocation.getFavoriteCount(mFavoriteDB, mFavoriteGroup);
+                    GoUtils.DisplayToast(this, getResources().getString(R.string.favorite_save_ok)
+                            + "（" + mFavoriteGroup + " 共 " + count + " 个）");
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     /*============================== SearchView 相关 ==============================*/

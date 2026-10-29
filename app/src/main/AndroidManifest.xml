@@ -95,6 +95,11 @@
             android:label="@string/app_history"
             android:exported="false" />
 
+        <activity
+            android:name=".FavoriteActivity"
+            android:label="@string/nav_menu_favorite"
+            android:exported="false" />
+
     </application>
 
 </manifest>
